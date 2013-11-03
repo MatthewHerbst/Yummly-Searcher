@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+	<meta name='author' content='Matthew Herbst'>
+	<meta charset='utf-8'>
+	<title>Yummly Recipe Searcher</title>
+	<link rel='stylesheet' type='text/css' href='styles/yummly_searcher.css'>
+	<script type='text/javascript' src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"> </script>
+</head>
+<body>
+	<div id='title'>
+		<h1>Use the form to search for recipes!</h1>
+	</div>
+	
+	<div id='searchForm'>
+		<label>Select Course (can be left blank*)</label>
+		<select id='courseList'><select>
+		<br />
+		*Blank course will result in less recipe information returned
+	
+		<br />
+		<br />
+	
+		<label>Search Params (seperate by space):</label>
+		<input id='searchParams' type='text'>
+		
+		<br />
+		<br />
+		
+		<label>Enter the number of results to return:</label>
+		<input id='numResults' type='text' value='10'>
+		
+		<br />
+		<br />
+		
+		<input id='search' type='button' value='Search for Recipes' onclick='recipeSearch()'>
+	</div>
+	
+	<div id='searchResults'></div>
+	
+	<!-- JS responsible for all the fun stuff -->
+	<script type='text/javascript'>
+		/** START GLOBAL VARS **/
+		var appID = '';
+		var appKey = '';
+		
+		var baseSearchURL = 'http://api.yummly.com/v1/api/recipes?_app_id=' + appID + '&_app_key=' + appKey;
+		var coursesURL = 'http://api.yummly.com/v1/api/metadata/course?_app_id=' + appID + '&_app_key=' + appKey;
+		/** END GLOBAL VARS **/
+	
+		/** START PROGRAM RUN **/
+		$(document).ready(function() {
+			//Populate the course options
+			populateCourseList();
+		});
+		/** END PROGRAM RUN **/
+			
+		//Populates the course list
+		function populateCourseList() {		
+			//Query for the list
+			$.getJSON(coursesURL + '?callback=?', null, function(data) {		
+				//Callback function set_metadata is called upon success
+			});
+		};
+		
+		//Callback function for the courses
+		function set_metadata(course, data) {					
+			//Pull out just the course names and sort them
+			var courses = [];
+			for(var i = 0; i < data.length; ++i) {
+				courses.push(data[i].description);
+			}
+			courses.sort();
+			
+			//Generate HTML for the names to be put in the drop-down
+			html = '';
+			for(var i = 0; i < courses.length; ++i) {
+				html += '<option>' + courses[i] + '</option>';
+			}
+			
+			//Add an "empty" option
+			html = '<option></option>' + html;
+			
+			//Add the HTML to the drop-down
+			document.getElementById('courseList').innerHTML = html;
+		};
+		
+		//Searches for recipes using the global search parameters
+		function recipeSearch() {
+			//The full search URL that will be built
+			var searchURL = baseSearchURL;
+			
+			//Find which recipe was selected and add it to the search URL
+			var courseList = document.getElementById('courseList');
+			var course = courseList.options[courseList.selectedIndex].text;
+			searchURL += '&allowedCourse[]=course^course-' + encodeURIComponent(course); //Search is not affetced by this being empty
+			
+			//Get the search query parameters, URL-encode them, and add them to the search URL
+			var query = document.getElementById('searchParams').value;
+			query = encodeURIComponent(query);
+			searchURL += '&q=' + query;
+			
+			//Get the number of results to return and add it to the search URL
+			var numResults = document.getElementById('numResults').value;
+			if(parseInt(numResults) == 'NaN') {
+				numResults = 10;
+			}
+			searchURL += '&maxResult=' + numResults;
+			
+			$.ajax({
+				url: searchURL + '&callback=?',
+				dataType: 'json',
+				success: populateSearchResults
+			});
+		};
+		
+		//Callback function for recipe searching. Populates the search results
+		function populateSearchResults(results) {
+			console.log(results);
+			var html = '<h3>Search Results:</h3>';
+			
+			if(results.matches.length == 0) {
+				html = '<h3>No recipes match your search.</h3>'
+			} else {
+				for(var i = 1; i < results.matches.length; ++i) {
+					//Add the name of the recipe
+					html += '<div class=\'recipe\'><label>' + results.matches[i].recipeName + '</label>';
+					
+					//Add course information if available (yes, could check the course variable, but that's less modular)
+					html += '<br /><label>Course(s):</label>' + ' ';
+					if(results.matches[i].attributes.hasOwnProperty('course')) {
+						for(var j = 0; j < results.matches[i].attributes.course.length; ++j) {
+							html += results.matches[i].attributes.course[j] + ', ';
+						}
+					} else {
+						html += 'No course information returned for this recipe';
+					}
+					
+					//Add ingredient information
+					html += '<br /><label>Ingrediants:</label>' + ' ';
+					for(var j = 0; j < results.matches[i].ingredients.length; ++j) {
+						html += results.matches[i].ingredients[j] + ', ';
+					}
+					
+					html += '</div>';
+				}
+			}
+			
+			document.getElementById('searchResults').innerHTML = html;
+		};
+	</script>
+</body>
+</html>

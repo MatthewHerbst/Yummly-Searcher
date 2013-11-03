@@ -1,0 +1,35 @@
+body {
+	display: block;
+	margin: 0px;
+}
+
+#title {
+	display: inline;
+	height: 10%;
+	width: 100%;
+}
+
+#searchForm {
+	display: inline;
+	float: left;
+	border-top: 2px solid #000;
+	border-left: 2px solid #000;
+	border-bottom: 2px solid #000;
+	height: 90%;
+	width: 20%;
+	overflow-y: auto;	
+}
+
+#searchResults {
+	padding-left: 2px;
+	display: inline;
+	float: left;
+	border: 2px solid #000;
+	height: 90%;
+	width: 77%;
+	overflow-y: auto;
+}
+
+.recipe {
+	padding-bottom: 10px;
+}
