@@ -13,10 +13,18 @@
 	</div>
 	
 	<div id='searchForm'>
+		<label>Select Cuisine (can be left blank*)</label>
+		<select id='cuisineList'><select>
+		<br />
+		*Blank cuisine may result in less recipe information returned
+	
+		<br />
+		<br />
+		
 		<label>Select Course (can be left blank*)</label>
 		<select id='courseList'><select>
 		<br />
-		*Blank course will result in less recipe information returned
+		*Blank course may result in less recipe information returned
 	
 		<br />
 		<br />
@@ -46,25 +54,59 @@
 		
 		var baseSearchURL = 'http://api.yummly.com/v1/api/recipes?_app_id=' + appID + '&_app_key=' + appKey;
 		var coursesURL = 'http://api.yummly.com/v1/api/metadata/course?_app_id=' + appID + '&_app_key=' + appKey;
+		var cuisinesURL = 'http://api.yummly.com/v1/api/metadata/cuisine?_app_id=' + appID + '&_app_key=' + appKey;
+		
+		var type = '';
+		var returnedData = [];
 		/** END GLOBAL VARS **/
 	
 		/** START PROGRAM RUN **/
 		$(document).ready(function() {
-			//Populate the course options
-			populateCourseList();
+			//Populate the cuisine and course options
+			queryCuisineList();
+			queryCourseList();
 		});
 		/** END PROGRAM RUN **/
+		//Get the cuisine list
+		function queryCuisineList() {					
+			//Query for the list
+			$.getJSON(cuisinesURL + '?callback=?', null, function(data) {		
+				//Callback function set_metadata is called upon success
+			});
+		};
+		
+		//Fill out the cuisines drop-down
+		function populateCuisineList(data) {
+			//Pull out just the cuisine names and sort them
+			var cuisines = [];
+			for(var i = 0; i < data.length; ++i) {
+				cuisines.push(data[i].description);
+			}
+			cuisines.sort();
 			
-		//Populates the course list
-		function populateCourseList() {		
+			//Generate HTML for the names to be put in the drop-down
+			html = '';
+			for(var i = 0; i < cuisines.length; ++i) {
+				html += '<option>' + cuisines[i] + '</option>';
+			}
+			
+			//Add an "empty" option
+			html = '<option></option>' + html;
+			
+			//Add the HTML to the drop-down
+			document.getElementById('cuisineList').innerHTML = html;
+		};
+		
+		//Get the course list
+		function queryCourseList() {
 			//Query for the list
 			$.getJSON(coursesURL + '?callback=?', null, function(data) {		
 				//Callback function set_metadata is called upon success
 			});
 		};
 		
-		//Callback function for the courses
-		function set_metadata(course, data) {					
+		//Populate the courses drop-down
+		function populateCourseList(data) {
 			//Pull out just the course names and sort them
 			var courses = [];
 			for(var i = 0; i < data.length; ++i) {
@@ -85,12 +127,27 @@
 			document.getElementById('courseList').innerHTML = html;
 		};
 		
+		
+		//Callback function for the courses
+		function set_metadata(type, data) {
+			if(type == 'cuisine') {
+				populateCuisineList(data);
+			} else {
+				populateCourseList(data);
+			}
+		};
+		
 		//Searches for recipes using the global search parameters
 		function recipeSearch() {
 			//The full search URL that will be built
 			var searchURL = baseSearchURL;
+
+			//Find which cuisine was selected and add it to the search URL
+			var cuisineList = document.getElementById('cuisineList');
+			var cuisine = cuisineList.options[cuisineList.selectedIndex].text;
+			searchURL += '&allowedCuisine[]=cuisine^cuisine-' + encodeURIComponent(cuisine); //Search is not affetced by this being empty
 			
-			//Find which recipe was selected and add it to the search URL
+			//Find which course was selected and add it to the search URL
 			var courseList = document.getElementById('courseList');
 			var course = courseList.options[courseList.selectedIndex].text;
 			searchURL += '&allowedCourse[]=course^course-' + encodeURIComponent(course); //Search is not affetced by this being empty
