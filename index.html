@@ -56,8 +56,9 @@
 		var coursesURL = 'http://api.yummly.com/v1/api/metadata/course?_app_id=' + appID + '&_app_key=' + appKey;
 		var cuisinesURL = 'http://api.yummly.com/v1/api/metadata/cuisine?_app_id=' + appID + '&_app_key=' + appKey;
 		
-		var type = '';
-		var returnedData = [];
+		//Need to be able to match descriptions with search values
+		var cuisineData = [];
+		var courseData = [];
 		/** END GLOBAL VARS **/
 	
 		/** START PROGRAM RUN **/
@@ -131,10 +132,35 @@
 		//Callback function for the courses
 		function set_metadata(type, data) {
 			if(type == 'cuisine') {
+				cuisineData = data;
 				populateCuisineList(data);
 			} else {
+				courseData = data;
 				populateCourseList(data);
 			}
+		};
+		
+		//Returns the search value for a specified key/value
+		function getSearchValue(what, val) {
+			var dataToSearch = []; //Adds minor processing time but makes code a lot nicer
+			
+			//TODO: create a data structure to hold the different types and make this index based
+			
+			//Determine where to look for the search value
+			if(what == 'Cuisine') {
+				dataToSearch = cuisineData;
+			} else {
+				dataToSearch = courseData;
+			}
+			
+			//Find and return the search value
+			for(var i = 0; i < dataToSearch.length; ++i) {
+				if(dataToSearch[i].description == val) {
+					return dataToSearch[i].searchValue;
+				}
+			}
+			
+			//TODO: should handle not finding anything, even though that should never happen
 		};
 		
 		//Searches for recipes using the global search parameters
@@ -145,12 +171,13 @@
 			//Find which cuisine was selected and add it to the search URL
 			var cuisineList = document.getElementById('cuisineList');
 			var cuisine = cuisineList.options[cuisineList.selectedIndex].text;
-			searchURL += '&allowedCuisine[]=cuisine^cuisine-' + encodeURIComponent(cuisine); //Search is not affetced by this being empty
+			//Find the search value for the specified cuisine
+			searchURL += '&allowedCuisine[]=' + encodeURIComponent(getSearchValue('Cuisine', cuisine)); //Search is not affetced by this being empty
 			
 			//Find which course was selected and add it to the search URL
 			var courseList = document.getElementById('courseList');
 			var course = courseList.options[courseList.selectedIndex].text;
-			searchURL += '&allowedCourse[]=course^course-' + encodeURIComponent(course); //Search is not affetced by this being empty
+			searchURL += '&allowedCourse[]=' + encodeURIComponent(getSearchValue('Course', course)); //Search is not affetced by this being empty
 			
 			//Get the search query parameters, URL-encode them, and add them to the search URL
 			var query = document.getElementById('searchParams').value;
@@ -182,8 +209,18 @@
 				for(var i = 1; i < results.matches.length; ++i) {
 					//Add the name of the recipe
 					html += '<div class=\'recipe\'><label>' + results.matches[i].recipeName + '</label>';
-					
-					//Add course information if available (yes, could check the course variable, but that's less modular)
+			
+					//Add cuisine information if available
+					html += '<br /><label>Cuisines(s):</label>' + ' ';
+					if(results.matches[i].attributes.hasOwnProperty('cuisine')) {
+						for(var j = 0; j < results.matches[i].attributes.cuisine.length; ++j) {
+							html += results.matches[i].attributes.cuisine[j] + ', ';
+						}
+					} else {
+						html += 'No cuisine information returned for this recipe';
+					}
+			
+					//Add course information if available
 					html += '<br /><label>Course(s):</label>' + ' ';
 					if(results.matches[i].attributes.hasOwnProperty('course')) {
 						for(var j = 0; j < results.matches[i].attributes.course.length; ++j) {
